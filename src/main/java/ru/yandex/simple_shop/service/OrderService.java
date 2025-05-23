@@ -36,7 +36,6 @@ public class OrderService {
 
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setCreatedAt(LocalDateTime.now());
-//        orderRepository.save(orderEntity);
         List<OrderItemEntity> orderItems = cartItems.stream().map(cartItem -> OrderItemEntity.builder()
                 .order(orderEntity)
                 .item(cartItem.getItemEntity())
