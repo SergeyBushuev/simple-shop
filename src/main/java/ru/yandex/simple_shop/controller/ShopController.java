@@ -2,6 +2,7 @@ package ru.yandex.simple_shop.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +15,7 @@ import ru.yandex.simple_shop.model.SortType;
 import ru.yandex.simple_shop.service.ItemService;
 
 
-@RestController
+@Controller
 @RequiredArgsConstructor
 public class ShopController {
 
@@ -56,6 +57,8 @@ public class ShopController {
 
     @GetMapping("/items/{id}")
     public String getItem(@PathVariable Long id, Model model) {
+        ItemEntity item = itemService.getById(id);
+        model.addAttribute("item", item);
         return "item.html";
     }
 
