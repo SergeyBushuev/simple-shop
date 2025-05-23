@@ -43,6 +43,4 @@ public class OrderItemEntity {
 
     private Integer quantity;
 
-    @Column(name = "price_per_item")
-    private Double pricePerItem;
 }
