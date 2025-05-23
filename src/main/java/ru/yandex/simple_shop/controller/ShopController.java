@@ -1,5 +1,7 @@
 package ru.yandex.simple_shop.controller;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,11 +9,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.yandex.simple_shop.model.ActionType;
+import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.SortType;
+import ru.yandex.simple_shop.service.ItemService;
 
 
 @RestController
+@RequiredArgsConstructor
 public class ShopController {
+
+    private final ItemService itemService;
 
     @GetMapping("/")
     public String redirectToMain() {
@@ -24,12 +31,13 @@ public class ShopController {
                            @RequestParam(defaultValue = "10") int pageSize,
                            @RequestParam(defaultValue = "1") int pageNumber,
                            Model model) {
+        ItemEntity item = itemService.getById(1L); //test
 
         return "main.html";
     }
 
     @PostMapping("/main/items/{id}")
-    public String modifyItemInCart(@PathVariable Long id,
+    public String addItemInCart(@PathVariable Long id,
                                    @RequestParam ActionType action) {
 
         return "redirect:/main/items";
