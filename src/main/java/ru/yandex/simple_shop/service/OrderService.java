@@ -2,7 +2,6 @@ package ru.yandex.simple_shop.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
-import org.hibernate.query.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.simple_shop.model.CartItemEntity;

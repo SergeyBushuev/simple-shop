@@ -29,3 +29,11 @@ CREATE TABLE cart_items
     quantity INT    NOT NULL,
     CONSTRAINT unique_cart_item UNIQUE (item_id)
 );
+
+INSERT INTO items (title, description, img_path, price)
+VALUES ('Big cat','Big cat (Gigantic)','bigCat.jpg',1599.99),
+       ('Medium cat','Medium cat (his size is normal)','mediumCat.jpg',799.04),
+       ('Small cat','Small cat (very tiny)','smallCat.jpg',50.41),
+       ('Funny cat','Funny cat (hilarius)','memeCat.jpg',999999.99),
+       ('Marble dog','The best dog','mramorDog.jpg',70000.00),
+       ('Big dog','Big doge (really huge dog)','bigDog.jpg',5000.00);
