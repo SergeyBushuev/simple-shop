@@ -43,6 +43,7 @@ public class ShopController {
         model.addAttribute("search", search);
         model.addAttribute("paging", new Paging(pageNumber, pageSize, page.hasNext(), page.hasPrevious()));
         model.addAttribute("items", Lists.partition(page.getContent(), 3));
+        model.addAttribute("sort", sort);
 
         return "main.html";
     }

@@ -38,9 +38,7 @@ public class ItemEntity {
 
     private Double price;
 
-    @Column(name = "stock_count")
-    private Integer stockCount;
-
     @Transient
+    @Builder.Default
     private Integer count = 0;
 }

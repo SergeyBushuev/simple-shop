@@ -18,17 +18,10 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public Optional<CartItemEntity> findByItemId(Long itemId) {
-        return cartItemRepository.findByItemEntityId(itemId);
-    }
-
-    @Transactional
-    public void save(CartItemEntity cartItem) {
-        cartItemRepository.save(cartItem);
-    }
-
-    @Transactional
-    public void delete(CartItemEntity cartItem) {
-        cartItemRepository.delete(cartItem);
+        Optional<CartItemEntity> optCartItem = cartItemRepository.findByItemEntityId(itemId);
+        optCartItem.ifPresent((cartItemEntity ->
+                        cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity())));
+        return optCartItem;
     }
 
     @Transactional
@@ -39,7 +32,9 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public List<CartItemEntity> getAll() {
-        return cartItemRepository.findAll();
+        List<CartItemEntity> cartItemEntities = cartItemRepository.findAll();
+        cartItemEntities.forEach(cartItemEntity -> cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity()));
+        return cartItemEntities;
     }
 
     @Transactional()

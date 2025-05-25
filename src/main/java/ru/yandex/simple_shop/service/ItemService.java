@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.simple_shop.model.ActionType;
+import ru.yandex.simple_shop.model.CartItemEntity;
 import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.SortType;
 import ru.yandex.simple_shop.repository.ItemRepository;
@@ -52,11 +53,7 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public List<ItemEntity> getItemsFromCart() {
-        return cartService.getAll().stream().map(cartItemEntity -> {
-            ItemEntity itemEntity = cartItemEntity.getItemEntity();
-            itemEntity.setCount(cartItemEntity.getQuantity());
-            return itemEntity;
-        }).toList();
+        return cartService.getAll().stream().map(CartItemEntity::getItemEntity).toList();
     }
 
     private Sort convertSortType(SortType sortType) {

@@ -46,6 +46,7 @@ public class OrderService {
                 .map(item -> item.getItemEntity().getPrice() * item.getQuantity())
                 .reduce(0.0, Double::sum);
         orderEntity.setTotalPrice(totalPrice);
+        cartService.clearCart();
         return orderRepository.save(orderEntity);
     }
 

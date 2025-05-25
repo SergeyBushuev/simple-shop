@@ -20,6 +20,7 @@ import org.hibernate.cache.spi.support.AbstractReadWriteAccess;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -43,16 +44,16 @@ public class OrderEntity {
     private Double totalPrice;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<OrderItemEntity> orderItems = new ArrayList<>();
 
     @Transient
     public List<ItemEntity> getItems() {
-        List<ItemEntity> items = new ArrayList<>();
-        for (OrderItemEntity orderItem : orderItems) {
-            ItemEntity item = orderItem.getItem();
-            item.setCount(orderItem.getQuantity());
-            items.add(item);
-        }
-        return items;
+        return orderItems.stream()
+                .map(orderItemEntity -> {
+                    ItemEntity item = orderItemEntity.getItem();
+                    item.setCount(orderItemEntity.getQuantity());
+                    return item;
+                }).toList();
     }
 }
