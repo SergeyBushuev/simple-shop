@@ -44,8 +44,8 @@ public class ItemService {
     public void addItemInCart(Long id, ActionType action) {
         ItemEntity item = itemRepository.findById(id).orElseThrow(EntityNotFoundException::new);
         switch (action) {
-            case plus -> cartService.addCartItem(id, item);
-            case minus -> cartService.removeCartItem(id, item);
+            case plus -> cartService.addCartItem(item);
+            case minus -> cartService.removeCartItem(item);
             case delete -> cartService.deleteByItemId(id);
         }
 

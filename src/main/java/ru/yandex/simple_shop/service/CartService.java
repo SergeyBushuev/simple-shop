@@ -38,16 +38,16 @@ public class CartService {
     }
 
     @Transactional()
-    public void addCartItem (Long cartId, ItemEntity item) {
-        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(cartId)
+    public void addCartItem (ItemEntity item) {
+        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(item.getId())
                 .orElse(CartItemEntity.builder().itemEntity(item).quantity(0).build());
         cartItem.setQuantity(cartItem.getQuantity() + 1);
         cartItemRepository.save(cartItem);
     }
 
     @Transactional()
-    public void removeCartItem (Long cartId, ItemEntity item) {
-        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(cartId)
+    public void removeCartItem (ItemEntity item) {
+        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(item.getId())
                 .orElse(CartItemEntity.builder().itemEntity(item).quantity(0).build());
         if (cartItem.getQuantity() < 2) {
             cartItemRepository.delete(cartItem);
