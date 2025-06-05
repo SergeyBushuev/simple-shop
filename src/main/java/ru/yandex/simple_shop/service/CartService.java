@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.simple_shop.model.CartItemEntity;
 import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.repository.CartRepository;
@@ -17,49 +19,54 @@ public class CartService {
     private final CartRepository cartItemRepository;
 
     @Transactional(readOnly = true)
-    public Optional<CartItemEntity> findByItemId(Long itemId) {
-        Optional<CartItemEntity> optCartItem = cartItemRepository.findByItemEntityId(itemId);
-        optCartItem.ifPresent((cartItemEntity ->
-                        cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity())));
-        return optCartItem;
+    public Mono<CartItemEntity> findByItemId(Long itemId) {
+        Mono<CartItemEntity> optCartItem = cartItemRepository.findByItemEntityId(itemId);
+//        optCartItem.ifPresent((cartItemEntity ->
+//                        cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity())));
+        return optCartItem.map(cartItemEntity -> {
+                    cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity());
+                    return cartItemEntity;
+                }
+        );
     }
 
     @Transactional
-    public void deleteByItemId(Long id) {
-        Optional<CartItemEntity> optEntity = cartItemRepository.findByItemEntityId(id);
-        optEntity.ifPresent(cartItemRepository::delete);
+    public Mono<CartItemEntity> deleteByItemId(Long id) {
+        return cartItemRepository.findByItemEntityId(id)
+                .doOnNext(cartItemRepository::delete);
     }
 
     @Transactional(readOnly = true)
-    public List<CartItemEntity> getAll() {
-        List<CartItemEntity> cartItemEntities = cartItemRepository.findAll();
-        cartItemEntities.forEach(cartItemEntity -> cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity()));
-        return cartItemEntities;
+    public Flux<CartItemEntity> getAll() {
+        Flux<CartItemEntity> cartItemEntities = cartItemRepository.findAll();
+        return cartItemEntities.doOnNext(cartItemEntity -> cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity()));
     }
 
     @Transactional()
-    public void addCartItem (ItemEntity item) {
-        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(item.getId())
-                .orElse(CartItemEntity.builder().itemEntity(item).quantity(0).build());
-        cartItem.setQuantity(cartItem.getQuantity() + 1);
-        cartItemRepository.save(cartItem);
+    public Mono<CartItemEntity> addCartItem(ItemEntity item) {
+        return cartItemRepository.findByItemEntityId(item.getId())
+                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
+                .doOnNext(cartItem ->  cartItem.setQuantity(cartItem.getQuantity() + 1)).doOnNext(cartItemRepository::save);
     }
 
     @Transactional()
-    public void removeCartItem (ItemEntity item) {
-        CartItemEntity cartItem = cartItemRepository.findByItemEntityId(item.getId())
-                .orElse(CartItemEntity.builder().itemEntity(item).quantity(0).build());
-        if (cartItem.getQuantity() < 2) {
-            cartItemRepository.delete(cartItem);
-        } else {
-            cartItem.setQuantity(cartItem.getQuantity() - 1);
-            cartItemRepository.save(cartItem);
-        }
+    public Mono<CartItemEntity> removeCartItem(ItemEntity item) {
+        return cartItemRepository.findByItemEntityId(item.getId())
+                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
+                .flatMap(cartItem -> {
+                    if (cartItem.getQuantity() < 2) {
+                        return cartItemRepository.delete(cartItem).then(Mono.empty());
+                    } else {
+                        cartItem.setQuantity(cartItem.getQuantity() - 1);
+                        return cartItemRepository.save(cartItem);
+                    }
+                });
+
     }
 
     @Transactional
-    public void clearCart() {
-        cartItemRepository.deleteAll();
+    public Mono<Void> clearCart() {
+        return cartItemRepository.deleteAll();
     }
 
 }

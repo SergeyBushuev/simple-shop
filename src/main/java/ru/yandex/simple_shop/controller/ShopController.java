@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.simple_shop.dto.Paging;
 import ru.yandex.simple_shop.model.ActionType;
 import ru.yandex.simple_shop.model.ItemEntity;
@@ -28,38 +31,48 @@ public class ShopController {
     private final OrderService orderService;
 
     @GetMapping("/")
-    public String redirectToMain() {
-        return "redirect:/main/items";
+    public Mono<String> redirectToMain() {
+        return Mono.just("redirect:/main/items");
     }
 
     @GetMapping("/main/items")
-    public String getItems(@RequestParam(defaultValue = "") String search,
+    public Mono<String> getItems(@RequestParam(defaultValue = "") String search,
                            @RequestParam(defaultValue = "NO") SortType sort,
                            @RequestParam(defaultValue = "10") int pageSize,
                            @RequestParam(defaultValue = "1") int pageNumber,
                            Model model) {
-        Page<ItemEntity> page = itemService.getShowcase(search, sort, pageNumber, pageSize);
 
-        model.addAttribute("search", search);
-        model.addAttribute("paging", new Paging(pageNumber, pageSize, page.hasNext(), page.hasPrevious()));
-        model.addAttribute("items", Lists.partition(page.getContent(), 3));
-        model.addAttribute("sort", sort);
+        return itemService.getShowcase(search, sort, pageNumber, pageSize)
+                .map(tuple2 -> {
+                    List<ItemEntity> items = tuple2.getT1();
+                    long total = tuple2.getT2();
+                    boolean hasNext = (long) pageNumber * pageSize < total;
+                    boolean hasPrevious = pageNumber > 1;
 
-        return "main.html";
+                    model.addAttribute("search", search);
+                    model.addAttribute("paging", new Paging(pageNumber, pageSize, hasNext, hasPrevious));
+                    model.addAttribute("items", Lists.partition(items, 3));
+                    model.addAttribute("sort", sort);
+                    return "main.html";
+                });
+
     }
 
     @GetMapping("/items/{id}")
-    public String getItem(@PathVariable Long id, Model model) {
-        ItemEntity item = itemService.findById(id);
-        model.addAttribute("item", item);
-        return "item.html";
+    public Mono<String> getItem(@PathVariable Long id, Model model) {
+        return itemService.findById(id)
+                .doOnNext(item -> model.addAttribute("item", item))
+                .then(Mono.just("item.html"));
     }
 
     @PostMapping("/main/items/{id}")
-    public String addItemInCart(@PathVariable Long id,
-                                @RequestParam ActionType action) {
-        itemService.addItemInCart(id, action);
-        return "redirect:/main/items";
+    public Mono<String> addItemInCart(@PathVariable Long id,
+                                ServerWebExchange exchange) {
+        return exchange.getFormData()
+                .mapNotNull(data -> data.getFirst("action"))
+                .map(ActionType::valueOf)
+                .flatMap(actionType -> itemService.addItemInCart(id, actionType))
+                .then(Mono.just("redirect:/main/items"));
     }
 
     @PostMapping("/cart/items/{id}")
@@ -70,15 +83,18 @@ public class ShopController {
     }
 
     @GetMapping("/cart/items")
-    public String getCartItems(Model model) {
-        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart();
-        double total = itemsFromCart.stream()
-                .map(item -> item.getPrice() * item.getCount())
-                .reduce(0.0, Double::sum);
-        model.addAttribute("total", total);
-        model.addAttribute("items", itemsFromCart);
-        model.addAttribute("empty", itemsFromCart.isEmpty());
-        return "cart.html";
+    public Mono<String> getCartItems(Model model) {
+        return itemService.getItemsFromCart().collectList()
+                .map(itemList -> {
+                    double total = itemList.stream()
+                            .map(item -> item.getPrice() * item.getCount())
+                            .reduce(0.0, Double::sum);
+                    model.addAttribute("total", total);
+                    model.addAttribute("items", itemList);
+                    model.addAttribute("empty", itemList.isEmpty());
+                    return "cart.html";
+                });
+
     }
 
     @PostMapping("/items/{id}")

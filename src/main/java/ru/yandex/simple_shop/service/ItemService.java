@@ -1,13 +1,14 @@
 package ru.yandex.simple_shop.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import ru.yandex.simple_shop.model.ActionType;
 import ru.yandex.simple_shop.model.CartItemEntity;
 import ru.yandex.simple_shop.model.ItemEntity;
@@ -24,36 +25,49 @@ public class ItemService {
     private final CartService cartService;
 
     @Transactional(readOnly = true)
-    public ItemEntity findById(Long id) {
-        return itemRepository.findById(id).orElseThrow(EntityNotFoundException::new);
+    public Mono<ItemEntity> findById(Long id) {
+        return itemRepository.findById(id);
     }
 
     @Transactional(readOnly = true)
-    public Page<ItemEntity> getShowcase(String search, SortType sortType, int pageNumber, int pageSize) {
+    public Mono<Tuple2<List<ItemEntity>, Long>> getShowcase(String search, SortType sortType, int pageNumber, int pageSize) {
         Sort sort = convertSortType(sortType);
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, sort);
 
-        Page<ItemEntity> page = (search == null || search.isEmpty()) ?
+        Mono<List<ItemEntity>> page = ((search == null || search.isEmpty()) ?
                 itemRepository.findAll(pageable) :
-                itemRepository.findByTitleContainingIgnoreCase(search, pageable);
-        page.getContent().forEach(this::getItemCartQuantity);
-        return page;
+                itemRepository.findByTitleContainingIgnoreCase(search, pageable)).flatMap(this::getItemCartQuantity).collectList();
+        Mono<Long> count = ((search == null || search.isEmpty()) ?
+                itemRepository.count() : itemRepository.countByTitleContainingIgnoreCase(search));
+        return Mono.zip(page, count);
     }
 
     @Transactional()
-    public void addItemInCart(Long id, ActionType action) {
-        ItemEntity item = itemRepository.findById(id).orElseThrow(EntityNotFoundException::new);
-        switch (action) {
-            case plus -> cartService.addCartItem(item);
-            case minus -> cartService.removeCartItem(item);
-            case delete -> cartService.deleteByItemId(id);
-        }
+    public Mono<CartItemEntity> addItemInCart(Long id, ActionType action) {
+        return itemRepository.findById(id).flatMap( item ->
+                {
+                    switch (action) {
+                        case plus -> {
+                            return cartService.addCartItem(item);
+                        }
+                        case minus -> {
+                            return cartService.removeCartItem(item);
+                        }
+                        case delete -> {
+                            return cartService.deleteByItemId(id);
+                        }
+                        default -> {
+                            return Mono.empty();
+                        }
+                    }
+                }
+        );
 
     }
 
     @Transactional(readOnly = true)
-    public List<ItemEntity> getItemsFromCart() {
-        return cartService.getAll().stream().map(CartItemEntity::getItemEntity).toList();
+    public Flux<ItemEntity> getItemsFromCart() {
+        return cartService.getAll().map(CartItemEntity::getItemEntity);
     }
 
     private Sort convertSortType(SortType sortType) {
@@ -64,8 +78,8 @@ public class ItemService {
         };
     }
 
-    private void getItemCartQuantity(ItemEntity item) {
-        cartService.findByItemId(item.getId())
-                .ifPresent(cartItem -> item.setCount(cartItem.getQuantity()));
+    private Mono<ItemEntity> getItemCartQuantity(ItemEntity item) {
+        return cartService.findByItemId(item.getId())
+                .doOnNext(cartItem -> item.setCount(cartItem.getQuantity())).then(Mono.just(item));
     }
 }

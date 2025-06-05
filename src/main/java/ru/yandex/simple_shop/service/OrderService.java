@@ -4,6 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.simple_shop.model.CartItemEntity;
 import ru.yandex.simple_shop.model.OrderEntity;
 import ru.yandex.simple_shop.model.OrderItemEntity;
@@ -20,13 +22,13 @@ public class OrderService {
     private final OrderRepository orderRepository;
 
     @Transactional
-    public List<OrderEntity> getOrders() {
+    public Flux<OrderEntity> getOrders() {
         return orderRepository.findAll();
     }
 
     @Transactional
-    public OrderEntity findById(Long id) {
-        return orderRepository.findById(id).orElseThrow(EntityNotFoundException::new);
+    public Mono<OrderEntity> findById(Long id) {
+        return orderRepository.findById(id);
     }
 
     @Transactional
