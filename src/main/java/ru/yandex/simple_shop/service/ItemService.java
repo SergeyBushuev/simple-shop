@@ -35,7 +35,7 @@ public class ItemService {
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, sort);
 
         Mono<List<ItemEntity>> page = ((search == null || search.isEmpty()) ?
-                itemRepository.findAll(pageable) :
+                itemRepository.findAll() :
                 itemRepository.findByTitleContainingIgnoreCase(search, pageable)).flatMap(this::getItemCartQuantity).collectList();
         Mono<Long> count = ((search == null || search.isEmpty()) ?
                 itemRepository.count() : itemRepository.countByTitleContainingIgnoreCase(search));
@@ -66,8 +66,13 @@ public class ItemService {
     }
 
     @Transactional(readOnly = true)
-    public Flux<ItemEntity> getItemsFromCart() {
-        return cartService.getAll().map(CartItemEntity::getItemEntity);
+    public Mono<List<ItemEntity>> getItemsFromCart() {
+        return cartService.getAll().flatMap(cartItemEntities ->
+                findById(cartItemEntities.getItemEntityId())
+                        .map(itemEntity -> {
+                            itemEntity.setCount(cartItemEntities.getQuantity());
+                            return itemEntity;
+                        })).collectList();
     }
 
     private Sort convertSortType(SortType sortType) {

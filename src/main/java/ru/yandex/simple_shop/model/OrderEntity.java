@@ -35,15 +35,19 @@ public class OrderEntity {
     private Double totalPrice;
 
     @Builder.Default
+    @Transient
     private List<OrderItemEntity> orderItems = new ArrayList<>();
 
     @Transient
-    public List<ItemEntity> getItems() {
-        return orderItems.stream()
-                .map(orderItemEntity -> {
-                    ItemEntity item = orderItemEntity.getItem();
-                    item.setCount(orderItemEntity.getQuantity());
-                    return item;
-                }).toList();
-    }
+    private List<ItemEntity> items = new ArrayList<>();
+
+//    @Transient
+//    public List<ItemEntity> getItems() {
+//        return orderItems.stream()
+//                .map(orderItemEntity -> {
+//                    ItemEntity item = orderItemEntity.getItem();
+//                    item.setCount(orderItemEntity.getQuantity());
+//                    return item;
+//                }).toList();
+//    }
 }

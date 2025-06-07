@@ -25,7 +25,7 @@ public class CartItemEntity {
     private Long id;
 
     @Column("item_id")
-    private ItemEntity itemEntity;
+    private Long itemEntityId;
 
     private Integer quantity;
 }

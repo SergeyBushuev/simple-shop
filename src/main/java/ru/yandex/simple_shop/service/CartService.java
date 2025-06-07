@@ -20,39 +20,44 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public Mono<CartItemEntity> findByItemId(Long itemId) {
-        Mono<CartItemEntity> optCartItem = cartItemRepository.findByItemEntityId(itemId);
+        return cartItemRepository.findByItemEntityId(itemId);
 //        optCartItem.ifPresent((cartItemEntity ->
 //                        cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity())));
-        return optCartItem.map(cartItemEntity -> {
-                    cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity());
-                    return cartItemEntity;
-                }
-        );
+//        return optCartItem.map(cartItemEntity -> {
+//                    cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity());
+//                    return cartItemEntity;
+//                }
+//        );
     }
 
     @Transactional
     public Mono<CartItemEntity> deleteByItemId(Long id) {
         return cartItemRepository.findByItemEntityId(id)
-                .doOnNext(cartItemRepository::delete);
+                .flatMap(cartItem -> {
+                    return cartItemRepository.delete(cartItem).thenReturn(cartItem);
+                });
     }
 
     @Transactional(readOnly = true)
     public Flux<CartItemEntity> getAll() {
-        Flux<CartItemEntity> cartItemEntities = cartItemRepository.findAll();
-        return cartItemEntities.doOnNext(cartItemEntity -> cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity()));
+        return cartItemRepository.findAll();
     }
 
     @Transactional()
     public Mono<CartItemEntity> addCartItem(ItemEntity item) {
         return cartItemRepository.findByItemEntityId(item.getId())
-                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
-                .doOnNext(cartItem ->  cartItem.setQuantity(cartItem.getQuantity() + 1)).doOnNext(cartItemRepository::save);
+                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntityId(item.getId()).quantity(0).build()))
+                .map(cartItem -> {
+                    cartItem.setQuantity(cartItem.getQuantity() + 1);
+                    return cartItem;
+                })
+                .flatMap(cartItemRepository::save);
     }
 
     @Transactional()
     public Mono<CartItemEntity> removeCartItem(ItemEntity item) {
         return cartItemRepository.findByItemEntityId(item.getId())
-                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
+//                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
                 .flatMap(cartItem -> {
                     if (cartItem.getQuantity() < 2) {
                         return cartItemRepository.delete(cartItem).then(Mono.empty());

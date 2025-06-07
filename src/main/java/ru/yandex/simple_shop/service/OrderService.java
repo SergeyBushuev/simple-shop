@@ -1,14 +1,14 @@
 package ru.yandex.simple_shop.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import ru.yandex.simple_shop.model.CartItemEntity;
+import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.OrderEntity;
 import ru.yandex.simple_shop.model.OrderItemEntity;
+import ru.yandex.simple_shop.repository.OrderItemRepository;
 import ru.yandex.simple_shop.repository.OrderRepository;
 
 import java.time.LocalDateTime;
@@ -20,35 +20,74 @@ public class OrderService {
 
     private final CartService cartService;
     private final OrderRepository orderRepository;
+    private final ItemService itemService;
+    private final OrderItemRepository orderItemRepository;
 
     @Transactional
     public Flux<OrderEntity> getOrders() {
-        return orderRepository.findAll();
+        return orderRepository.findAll().flatMap(order -> getItemsForOrder(order.getId())
+                .collectList()
+                .flatMap(items -> setItemsForOrder(order, items)));
+//        return orderRepository.findAll(); //TODO
     }
 
     @Transactional
     public Mono<OrderEntity> findById(Long id) {
-        return orderRepository.findById(id);
+        Mono<List<ItemEntity>> items = getItemsForOrder(id).collectList();
+        return orderRepository.findById(id).zipWith(items).map(tuple2 -> {
+            OrderEntity order = tuple2.getT1();
+            order.setItems(tuple2.getT2());
+            return order;
+        });
+    }
+
+    private Mono<OrderEntity> setItemsForOrder(OrderEntity order, List<ItemEntity> items) {
+        order.setItems(items);
+        return Mono.just(order);
+    }
+    private Flux<ItemEntity> getItemsForOrder(Long id) {
+        return orderItemRepository.findByOrderId(id)
+                .flatMap(orderItemEntity -> itemService.findById(orderItemEntity.getItemId())
+                        .doOnNext(item -> item.setCount(orderItemEntity.getQuantity())));
     }
 
     @Transactional
-    public OrderEntity createOrder() {
-        List<CartItemEntity> cartItems = cartService.getAll();
-
+    public Mono<OrderEntity> createOrder() {
         OrderEntity orderEntity = new OrderEntity();
-        orderEntity.setCreatedAt(LocalDateTime.now());
-        List<OrderItemEntity> orderItems = cartItems.stream().map(cartItem -> OrderItemEntity.builder()
-                .order(orderEntity)
-                .item(cartItem.getItemEntity())
-                .quantity(cartItem.getQuantity())
-                .build()).toList();
-        orderEntity.setOrderItems(orderItems);
-        Double totalPrice = cartItems.stream()
-                .map(item -> item.getItemEntity().getPrice() * item.getQuantity())
-                .reduce(0.0, Double::sum);
-        orderEntity.setTotalPrice(totalPrice);
-        cartService.clearCart();
-        return orderRepository.save(orderEntity);
+        Mono<List<ItemEntity>> itemsFromCart = itemService.getItemsFromCart().doOnNext(orderEntity::setItems).cache();
+
+        Mono<Double> totalPrice = itemsFromCart.map(items -> items.stream().map(item -> item.getPrice() * item.getCount())
+                .reduce(0.0, Double::sum));
+
+        Mono<List<OrderItemEntity>> orderItems = itemsFromCart
+                .map(items -> items.stream().map(item -> OrderItemEntity.builder()
+                        .orderId(orderEntity.getId())
+                        .itemId(item.getId())
+                        .quantity(item.getCount())
+                        .build()).toList());
+
+        return orderItems.zipWith(totalPrice).map(tuple2 ->
+                {
+                    orderEntity.setCreatedAt(LocalDateTime.now());
+                    orderEntity.setOrderItems(tuple2.getT1());
+                    orderEntity.setTotalPrice(tuple2.getT2());
+                    return orderEntity;
+                })
+                .flatMap(this::clearCart)
+                .flatMap(orderRepository::save)
+                .flatMap(order -> orderItemRepository.saveAll(getOrderItemsWithId(orderEntity))
+                        .then(Mono.just(order)));
+
+    }
+
+    private Mono<OrderEntity> clearCart(OrderEntity orderEntity) {
+        return cartService.clearCart().thenReturn(orderEntity);
+    }
+
+    private List<OrderItemEntity> getOrderItemsWithId(OrderEntity orderEntity) {
+        orderEntity.getOrderItems()
+                .forEach(orderItemEntity -> orderItemEntity.setOrderId(orderEntity.getId()));
+        return orderEntity.getOrderItems();
     }
 
 }

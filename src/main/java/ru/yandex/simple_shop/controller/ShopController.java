@@ -76,15 +76,19 @@ public class ShopController {
     }
 
     @PostMapping("/cart/items/{id}")
-    public String modifyCartItem(@PathVariable Long id,
-                                 @RequestParam ActionType action) {
-        itemService.addItemInCart(id, action);
-        return "redirect:/cart/items";
+    public Mono<String> modifyCartItem(@PathVariable Long id,
+                                       ServerWebExchange exchange) {
+        return exchange.getFormData()
+                .mapNotNull(data -> data.getFirst("action"))
+                .map(ActionType::valueOf)
+                .flatMap(actionType -> itemService.addItemInCart(id, actionType))
+                .then(Mono.just("redirect:/cart/items"));
+//        return itemService.addItemInCart(id, action).map(item -> "redirect:/cart/items");
     }
 
     @GetMapping("/cart/items")
     public Mono<String> getCartItems(Model model) {
-        return itemService.getItemsFromCart().collectList()
+        return itemService.getItemsFromCart()
                 .map(itemList -> {
                     double total = itemList.stream()
                             .map(item -> item.getPrice() * item.getCount())
@@ -98,32 +102,37 @@ public class ShopController {
     }
 
     @PostMapping("/items/{id}")
-    public String addCartItemFromItem(@PathVariable Long id,
-                                      @RequestParam ActionType action) {
-        itemService.addItemInCart(id, action);
-        return "redirect:/items/" + id;
+    public Mono<String> addCartItemFromItem(@PathVariable Long id,
+                                            ServerWebExchange exchange) {
+        return exchange.getFormData()
+                .mapNotNull(data -> data.getFirst("action"))
+                .map(ActionType::valueOf)
+                .flatMap(actionType -> itemService.addItemInCart(id, actionType))
+                .then(Mono.just("redirect:/items/" + id));
     }
 
     @PostMapping("/buy")
-    public String buyItems() {
-        OrderEntity orderEntity = orderService.createOrder();
-        return "redirect:/orders/" + orderEntity.getId() + "?newOrder=true";
+    public Mono<String> buyItems() {
+        return orderService.createOrder()
+                .map(orderEntity -> "redirect:/orders/" + orderEntity.getId() + "?newOrder=true");
     }
 
     @GetMapping("/orders")
-    public String getOrders(Model model) {
-        List<OrderEntity> orders = orderService.getOrders();
-        model.addAttribute("orders", orders);
-        return "orders.html";
+    public Mono<String> getOrders(Model model) {
+        return orderService.getOrders().collectList().map(orders -> {
+            model.addAttribute("orders", orders);
+            return "orders.html";
+        });
     }
 
     @GetMapping("/orders/{id}")
-    public String getOrder(@PathVariable Long id,
+    public Mono<String> getOrder(@PathVariable Long id,
                            @RequestParam(defaultValue = "false") boolean newOrder,
                            Model model) {
-        OrderEntity orderEntity = orderService.findById(id);
-        model.addAttribute("order", orderEntity);
-        model.addAttribute("newOrder", newOrder);
-        return "order.html";
+        return orderService.findById(id).map(orderEntity -> {
+            model.addAttribute("order", orderEntity);
+            model.addAttribute("newOrder", newOrder);
+            return "order.html";
+        });
     }
 }

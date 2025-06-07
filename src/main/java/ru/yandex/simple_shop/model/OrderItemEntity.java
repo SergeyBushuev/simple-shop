@@ -27,10 +27,10 @@ public class OrderItemEntity {
 
     @ToString.Exclude
     @Column("order_id")
-    private OrderEntity order;
+    private Long orderId;
 
     @Column("item_id")
-    private ItemEntity item;
+    private Long itemId;
 
     private Integer quantity;
 

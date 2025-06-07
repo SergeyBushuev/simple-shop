@@ -11,6 +11,5 @@ import ru.yandex.simple_shop.model.ItemEntity;
 @Repository
 public interface ItemRepository extends R2dbcRepository<ItemEntity, Long> {
     Mono<Long> countByTitleContainingIgnoreCase(String title);
-    Flux<ItemEntity> findAll(Pageable pageable);
     Flux<ItemEntity> findByTitleContainingIgnoreCase(String search, Pageable pageable);
 }
