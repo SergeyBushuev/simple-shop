@@ -1,8 +1,6 @@
 package ru.yandex.simple_shop.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,28 +29,26 @@ public class OrderServiceTest extends PostgresContainerConfig {
 
     @Test
     @SneakyThrows
-    @Transactional
     public void createOrder_OkTest() {
-        OrderEntity order = orderService.createOrder();
-        OrderEntity foundOrder = orderService.findById(order.getId());
+        OrderEntity order = orderService.createOrder().block();
+        OrderEntity foundOrder = orderService.findById(order.getId()).block();
         assertEquals(order.getId(), foundOrder.getId());
         assertEquals(order.getTotalPrice(), foundOrder.getTotalPrice());
     }
 
     @Test
     @SneakyThrows
-    @Transactional
     public void getOrders_OkTest() {
-        OrderEntity order = orderService.createOrder();
-        List<OrderEntity> foundOrders = orderService.getOrders();
+        OrderEntity order = orderService.createOrder().block();
+        List<OrderEntity> foundOrders = orderService.getOrders().collectList().block();
         assertEquals(order.getId(), foundOrders.getFirst().getId());
         assertEquals(order.getTotalPrice(), foundOrders.getFirst().getTotalPrice());
     }
 
     @Test
     @SneakyThrows
-    @Transactional
     public void getOrder_NotFoundTest() {
-        assertThrows(EntityNotFoundException.class, () -> orderService.findById(1000L));
+        OrderEntity order = orderService.findById(1000L).block();
+        assertNull(order);
     }
 }
