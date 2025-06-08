@@ -28,7 +28,6 @@ public class OrderService {
         return orderRepository.findAll().flatMap(order -> getItemsForOrder(order.getId())
                 .collectList()
                 .flatMap(items -> setItemsForOrder(order, items)));
-//        return orderRepository.findAll(); //TODO
     }
 
     @Transactional

@@ -21,21 +21,12 @@ public class CartService {
     @Transactional(readOnly = true)
     public Mono<CartItemEntity> findByItemId(Long itemId) {
         return cartItemRepository.findByItemEntityId(itemId);
-//        optCartItem.ifPresent((cartItemEntity ->
-//                        cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity())));
-//        return optCartItem.map(cartItemEntity -> {
-//                    cartItemEntity.getItemEntity().setCount(cartItemEntity.getQuantity());
-//                    return cartItemEntity;
-//                }
-//        );
     }
 
     @Transactional
     public Mono<CartItemEntity> deleteByItemId(Long id) {
         return cartItemRepository.findByItemEntityId(id)
-                .flatMap(cartItem -> {
-                    return cartItemRepository.delete(cartItem).thenReturn(cartItem);
-                });
+                .flatMap(cartItem -> cartItemRepository.delete(cartItem).thenReturn(cartItem));
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +48,6 @@ public class CartService {
     @Transactional()
     public Mono<CartItemEntity> removeCartItem(ItemEntity item) {
         return cartItemRepository.findByItemEntityId(item.getId())
-//                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntity(item).quantity(0).build()))
                 .flatMap(cartItem -> {
                     if (cartItem.getQuantity() < 2) {
                         return cartItemRepository.delete(cartItem).then(Mono.empty());

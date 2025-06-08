@@ -41,13 +41,4 @@ public class OrderEntity {
     @Transient
     private List<ItemEntity> items = new ArrayList<>();
 
-//    @Transient
-//    public List<ItemEntity> getItems() {
-//        return orderItems.stream()
-//                .map(orderItemEntity -> {
-//                    ItemEntity item = orderItemEntity.getItem();
-//                    item.setCount(orderItemEntity.getQuantity());
-//                    return item;
-//                }).toList();
-//    }
 }

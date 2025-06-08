@@ -83,7 +83,6 @@ public class ShopController {
                 .map(ActionType::valueOf)
                 .flatMap(actionType -> itemService.addItemInCart(id, actionType))
                 .then(Mono.just("redirect:/cart/items"));
-//        return itemService.addItemInCart(id, action).map(item -> "redirect:/cart/items");
     }
 
     @GetMapping("/cart/items")

@@ -20,7 +20,6 @@ public class PostgresContainerConfig {
 				.withPassword("junit")
 				.withInitScript("testSchema.sql")
 				.withReuse(true);
-		// Имя и версия образа .withDatabaseName("testdb") // Название базы данных .withUsername("junit")      // Логин                .withPassword("junit");     // Пароль        postgres.start();
 	}
 
 	@BeforeAll
