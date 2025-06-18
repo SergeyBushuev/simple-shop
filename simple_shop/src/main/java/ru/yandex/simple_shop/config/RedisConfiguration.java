@@ -57,11 +57,11 @@ public class RedisConfiguration {
     @Bean
     public RedisCacheManagerBuilderCustomizer cacheManagerCustomizer(
             GenericJackson2JsonRedisSerializer redisSerializer,
-            @Value("${spring.cache.redis.time-to-live}") Long ttl) {
+            @Value("${spring.cache.redis.time-to-live}") Long timeToLive) {
         return builder -> builder
                 .cacheDefaults(
                         RedisCacheConfiguration.defaultCacheConfig()
-                                .entryTtl(Duration.ofMillis(ttl))
+                                .entryTtl(Duration.ofMillis(timeToLive))
                                 .serializeValuesWith(
                                         RedisSerializationContext.SerializationPair
                                                 .fromSerializer(redisSerializer)));

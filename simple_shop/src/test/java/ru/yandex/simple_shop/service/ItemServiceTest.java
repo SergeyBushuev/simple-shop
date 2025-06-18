@@ -2,19 +2,28 @@ package ru.yandex.simple_shop.service;
 
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.util.function.Tuple2;
 import ru.yandex.simple_shop.PostgresContainerConfig;
 import ru.yandex.simple_shop.model.ActionType;
 import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.SortType;
+import ru.yandex.simple_shop.repository.ItemRepository;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 public class ItemServiceTest extends PostgresContainerConfig {
@@ -22,6 +31,9 @@ public class ItemServiceTest extends PostgresContainerConfig {
 
     @Autowired
     ItemService itemService;
+
+    @SpyBean
+    ItemRepository itemRepository;
 
     @Test
     @SneakyThrows
@@ -38,6 +50,18 @@ public class ItemServiceTest extends PostgresContainerConfig {
         Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10).block();
         assertFalse(page.getT1().isEmpty());
         assertEquals(6, page.getT1().size());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getPage_CachedOkTest() {
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase(null, SortType.NO, 1, 10).block();
+        verify(itemRepository, times(1)).findAll();
+        assertFalse(page.getT1().isEmpty());
+        assertFalse(page2.getT1().isEmpty());
+        assertEquals(6, page.getT1().size());
+        assertEquals(6, page2.getT1().size());
     }
 
     @Test
@@ -69,6 +93,18 @@ public class ItemServiceTest extends PostgresContainerConfig {
         assertEquals(2, items.size());
         assertEquals("Big cat", items.get(0).getTitle());
         assertEquals("Funny cat", items.get(1).getTitle());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getSearchedPriceOrderedPaging_CachedOkTest() {
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 2, 2).block();
+        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase("cat", SortType.PRICE, 2, 2).block();
+        Pageable pageable = PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "price"));
+        verify(itemRepository, times(1)).findByTitleContainingIgnoreCase("cat", pageable);
+
+        Tuple2<List<ItemEntity>, Long> page3 = itemService.getShowcase("dog", SortType.PRICE, 2, 2).block();
+        verify(itemRepository, times(1)).findByTitleContainingIgnoreCase("dog", pageable);
     }
 
     @Test

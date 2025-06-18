@@ -10,7 +10,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class PostgresContainerConfig {
+public class PostgresContainerConfig implements RedisConfig {
 
 	private static final PostgreSQLContainer<?> postgres;
 

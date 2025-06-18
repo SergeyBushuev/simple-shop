@@ -33,7 +33,6 @@ public class ItemService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "searchItems", key = "{#search, #sortType, #pageNumber, #pageSize}")
     public Mono<Tuple2<List<ItemEntity>, Long>> getShowcase(String search, SortType sortType, int pageNumber, int pageSize) {
         Sort sort = convertSortType(sortType);
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, sort);
