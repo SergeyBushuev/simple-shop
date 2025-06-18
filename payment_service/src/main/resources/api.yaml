@@ -1,0 +1,179 @@
+openapi: 3.0.3
+info:
+  title: Payment Service API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/
+
+tags:
+  - name: payment
+
+paths:
+  /payments/balance/{userId}:
+    get:
+      tags:
+        - payment
+      summary: User balance operation
+      description: User balance retrieval
+      operationId: getBalance
+      parameters:
+        - name: userId
+          in: path
+          description: User UUID
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 50
+            pattern: '^[a-zA-Z0-9_-]+$'
+      responses:
+        '200':
+          description: Successful balance retrieving
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+
+        '404':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /payments/pay:
+    post:
+      tags:
+        - payment
+      summary: Payment operation
+      description: Payment procession
+      operationId: processPayment
+      requestBody:
+        description: Payment data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+
+      responses:
+        '200':
+          description: Payment successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Payment failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required:
+        - userId
+        - amount
+      properties:
+        userId:
+          type: string
+          description: User UUID
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-zA-Z0-9_-]+$'
+        amount:
+          type: number
+          format: decimal
+          description: Payment sum
+          minimum: 0.01
+          maximum: 1000000.00
+          multipleOf: 0.01
+        description:
+          type: string
+          description: Payment description
+          maxLength: 255
+
+    BalanceResponse:
+      type: object
+      required:
+        - userId
+        - balance
+      properties:
+        userId:
+          type: string
+          description: User UUID
+        balance:
+          type: number
+          format: decimal
+          description: Current balance
+          minimum: 0
+
+    PaymentResponse:
+      type: object
+      required:
+        - userId
+        - amount
+        - remainingBalance
+        - status
+        - message
+      properties:
+        userId:
+          type: string
+          description: User UUID
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount
+        remainingBalance:
+          type: number
+          format: decimal
+          description: Remaining user balance
+          minimum: 0
+        status:
+          type: string
+          description: Payment operation status
+          enum:
+            - SUCCESS
+            - FAILED
+        message:
+          type: string
+          description: Payment operation message
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          enum:
+            - INTERNAL_ERROR
+            - USER_NOT_FOUND
+            - INSUFFICIENT_FUNDS
+        message:
+          type: string
+          description: Error message
+        timestamp:
+          type: integer
+          format: int64
+          description: Error timestamp

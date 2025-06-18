@@ -7,27 +7,49 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin
     volumes:
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./simple_shop/docker/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
-      - postgres_network
+      - service_network
 
-  app:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - service_network
+
+  simple_shop:
     image: shop-app:latest
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: simple_shop/docker/Dockerfile
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/webshop
-      SPRING_DATASOURCE_LOGIN: postgres
-      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/webshop
+      SPRING_R2DBC_USERNAME: postgres
+      SPRING_R2DBC_PASSWORD: admin
+      SPRING_DATA_REDIS_HOST: redis
+      PAYMENT_APP_HOST: payment_service
     networks:
-      - postgres_network
+      - service_network
     depends_on:
       - postgres
+      - redis
+
+  payment_service:
+    image: payment_service-app:latest
+    build:
+      context: .
+      dockerfile: payment_service/docker/Dockerfile
+    ports:
+      - "8081:8081"
+    networks:
+      - service_network
+    depends_on:
+      - simple_shop
 
 networks:
-  postgres_network:
+  service_network:
