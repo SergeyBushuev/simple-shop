@@ -21,17 +21,15 @@ public class OrderController {
     @PostMapping("/buy")
     public Mono<String> buyItems() {
 
-        return orderService.createOrder().flatMap(orderEntity -> {
-            return paymentService.processOrderPayment(orderEntity.getTotalPrice())
-                    .map(paymentSuccess -> {
-                        if (paymentSuccess) {
-                            return "redirect:/orders/" + orderEntity.getId() + "?newOrder=true";
-                        } else {
-                            return "redirect:/main/items";
-                        }
-
-                    });
-        });
+        return orderService.createOrder().flatMap(orderEntity ->
+                paymentService.processOrderPayment(orderEntity.getTotalPrice())
+                .map(paymentSuccess -> {
+                    if (paymentSuccess) {
+                        return "redirect:/orders/" + orderEntity.getId() + "?newOrder=true";
+                    } else {
+                        return "redirect:/main/items";
+                    }
+                }));
 
     }
 

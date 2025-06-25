@@ -6,3 +6,10 @@ management:
     web:
       exposure:
         include: '*'
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8180/realms/simple_shop/protocol/openid-connect/certs

@@ -2,7 +2,6 @@ package ru.yandex.simple_shop.controller;
 
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,16 +9,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.yandex.simple_shop.dto.Paging;
 import ru.yandex.simple_shop.model.ActionType;
 import ru.yandex.simple_shop.model.ItemEntity;
-import ru.yandex.simple_shop.model.OrderEntity;
 import ru.yandex.simple_shop.model.SortType;
 import ru.yandex.simple_shop.service.ItemService;
-import ru.yandex.simple_shop.service.OrderService;
-import ru.yandex.simple_shop.service.PaymentService;
 
 import java.util.List;
 

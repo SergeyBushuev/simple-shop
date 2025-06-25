@@ -1,4 +1,5 @@
-CREATE TABLE items (
+CREATE TABLE items
+(
     id          BIGSERIAL PRIMARY KEY,
     title       VARCHAR(255)   NOT NULL,
     description TEXT,
@@ -15,10 +16,10 @@ CREATE TABLE orders
 
 CREATE TABLE order_items
 (
-    id             BIGSERIAL PRIMARY KEY,
-    order_id       BIGINT         NOT NULL REFERENCES orders (id),
-    item_id        BIGINT         NOT NULL REFERENCES items (id),
-    quantity       INT            NOT NULL,
+    id       BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL REFERENCES orders (id),
+    item_id  BIGINT NOT NULL REFERENCES items (id),
+    quantity INT    NOT NULL,
     CONSTRAINT unique_order_item UNIQUE (order_id, item_id)
 );
 
@@ -30,10 +31,21 @@ CREATE TABLE cart_items
     CONSTRAINT unique_cart_item UNIQUE (item_id)
 );
 
+CREATE TABLE users
+(
+    id       BIGSERIAL PRIMARY KEY,
+    username varchar(255) NOT NULL UNIQUE,
+    password varchar(255) NOT NULL,
+    role     varchar(255) NOT NULL
+);
+
 INSERT INTO items (title, description, img_path, price)
-VALUES ('Big cat','Big cat (Gigantic)','bigCat.jpg',1599.99),
-       ('Medium cat','Medium cat (his size is normal)','mediumCat.jpg',799.04),
-       ('Small cat','Small cat (very tiny)','smallCat.jpg',50.41),
-       ('Funny cat','Funny cat (hilarius)','memeCat.jpg',999999.99),
-       ('Marble dog','The best dog','mramorDog.jpg',70000.00),
-       ('Big dog','Big doge (really huge dog)','bigDog.jpg',5000.00);
+VALUES ('Big cat', 'Big cat (Gigantic)', 'bigCat.jpg', 1599.99),
+       ('Medium cat', 'Medium cat (his size is normal)', 'mediumCat.jpg', 799.04),
+       ('Small cat', 'Small cat (very tiny)', 'smallCat.jpg', 50.41),
+       ('Funny cat', 'Funny cat (hilarius)', 'memeCat.jpg', 999999.99),
+       ('Marble dog', 'The best dog', 'mramorDog.jpg', 70000.00),
+       ('Big dog', 'Big doge (really huge dog)', 'bigDog.jpg', 5000.00);
+
+INSERT INTO users (id, username, password, role)
+VALUES (1, 'testuser', '$2a$12$ap7oaVJLkC/WNhXpiJN6LOfv.0vp982jBZz0tH3tNFJZvpx2qWko.', 'USER')
