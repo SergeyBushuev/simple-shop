@@ -2,6 +2,7 @@ package ru.yandex.simple_shop.controller;
 
 import com.google.common.collect.Lists;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +17,9 @@ import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.SortType;
 import ru.yandex.simple_shop.service.ItemService;
 
+import java.security.Principal;
 import java.util.List;
+import java.util.Objects;
 
 
 @Controller
@@ -35,9 +38,11 @@ public class ShopController {
                            @RequestParam(defaultValue = "NO") SortType sort,
                            @RequestParam(defaultValue = "10") int pageSize,
                            @RequestParam(defaultValue = "1") int pageNumber,
+                           Principal principal,
                            Model model) {
+        String username = Objects.isNull(principal) ? "" : principal.getName();
 
-        return itemService.getShowcase(search, sort, pageNumber, pageSize)
+        return itemService.getShowcase(search, sort, pageNumber, pageSize, username)
                 .map(tuple2 -> {
                     List<ItemEntity> items = tuple2.getT1();
                     long total = tuple2.getT2();
@@ -54,29 +59,36 @@ public class ShopController {
     }
 
     @GetMapping("/items/{id}")
-    public Mono<String> getItem(@PathVariable Long id, Model model) {
-        return itemService.findById(id)
+    public Mono<String> getItem(@PathVariable Long id, Principal principal, Model model) {
+        String username = Objects.isNull(principal) ? "" : principal.getName();
+        return itemService.findById(id, username)
                 .doOnNext(item -> model.addAttribute("item", item))
                 .then(Mono.just("item.html"));
     }
 
     @PostMapping("/main/items/{id}")
+    @PreAuthorize("isAuthenticated() and hasAuthority('USER')")
     public Mono<String> addItemInCart(@PathVariable Long id,
+                                Principal principal,
                                 ServerWebExchange exchange) {
+        String username = principal.getName();
         return exchange.getFormData()
                 .mapNotNull(data -> data.getFirst("action"))
                 .map(ActionType::valueOf)
-                .flatMap(actionType -> itemService.addItemInCart(id, actionType))
+                .flatMap(actionType -> itemService.addItemInCart(id, actionType, username))
                 .then(Mono.just("redirect:/main/items"));
     }
 
     @PostMapping("/items/{id}")
+    @PreAuthorize("isAuthenticated() and hasAuthority('USER')")
     public Mono<String> addCartItemFromItem(@PathVariable Long id,
+                                            Principal principal,
                                             ServerWebExchange exchange) {
+        String username = principal.getName();
         return exchange.getFormData()
                 .mapNotNull(data -> data.getFirst("action"))
                 .map(ActionType::valueOf)
-                .flatMap(actionType -> itemService.addItemInCart(id, actionType))
+                .flatMap(actionType -> itemService.addItemInCart(id, actionType, username))
                 .then(Mono.just("redirect:/items/" + id));
     }
 

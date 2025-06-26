@@ -34,6 +34,9 @@ public class OrderEntity {
     @Column("total_price")
     private Double totalPrice;
 
+    @Column("user_id")
+    private Long userId;
+
     @Builder.Default
     @Transient
     private List<OrderItemEntity> orderItems = new ArrayList<>();

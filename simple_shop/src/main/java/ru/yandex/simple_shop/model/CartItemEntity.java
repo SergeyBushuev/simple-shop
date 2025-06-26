@@ -27,5 +27,8 @@ public class CartItemEntity {
     @Column("item_id")
     private Long itemEntityId;
 
+    @Column("user_id")
+    private Long userId;
+
     private Integer quantity;
 }

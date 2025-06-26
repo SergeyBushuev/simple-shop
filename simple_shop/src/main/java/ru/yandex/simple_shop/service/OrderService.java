@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import ru.yandex.simple_shop.model.ItemEntity;
 import ru.yandex.simple_shop.model.OrderEntity;
 import ru.yandex.simple_shop.model.OrderItemEntity;
+import ru.yandex.simple_shop.model.User;
 import ru.yandex.simple_shop.repository.OrderItemRepository;
 import ru.yandex.simple_shop.repository.OrderRepository;
 
@@ -24,11 +25,12 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ItemService itemService;
     private final OrderItemRepository orderItemRepository;
+    private final UserService userService;
 
     @Transactional
-    @Cacheable(cacheNames = "orders")
-    public Flux<OrderEntity> getOrders() {
-        return orderRepository.findAll().flatMap(order -> getItemsForOrder(order.getId())
+    @Cacheable(cacheNames = "orders", key = "#userId")
+    public Flux<OrderEntity> getOrders(Long userId) {
+        return orderRepository.findAllByUserId(userId).flatMap(order -> getItemsForOrder(order.getId())
                 .collectList()
                 .flatMap(items -> setItemsForOrder(order, items)));
     }
@@ -55,10 +57,10 @@ public class OrderService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "cartItems", allEntries = true)
-    public Mono<OrderEntity> createOrder() {
+    @CacheEvict(cacheNames = "cartItems", key = "#userId", allEntries = true)
+    public Mono<OrderEntity> createOrder(User user) {
         OrderEntity orderEntity = new OrderEntity();
-        Mono<List<ItemEntity>> itemsFromCart = itemService.getItemsFromCart().doOnNext(orderEntity::setItems).cache();
+        Mono<List<ItemEntity>> itemsFromCart = itemService.getItemsFromCart(user.getUsername()).doOnNext(orderEntity::setItems).cache();
 
         Mono<Double> totalPrice = itemsFromCart.map(items -> items.stream().map(item -> item.getPrice() * item.getCount())
                 .reduce(0.0, Double::sum));
@@ -75,17 +77,18 @@ public class OrderService {
                     orderEntity.setCreatedAt(LocalDateTime.now());
                     orderEntity.setOrderItems(tuple2.getT1());
                     orderEntity.setTotalPrice(tuple2.getT2());
+                    orderEntity.setUserId(user.getId());
                     return orderEntity;
                 })
-                .flatMap(this::clearCart)
+                .flatMap(order -> this.clearCart(order, user.getId()))
                 .flatMap(orderRepository::save)
                 .flatMap(order -> orderItemRepository.saveAll(getOrderItemsWithId(orderEntity))
                         .then(Mono.just(order)));
 
     }
 
-    private Mono<OrderEntity> clearCart(OrderEntity orderEntity) {
-        return cartService.clearCart().thenReturn(orderEntity);
+    private Mono<OrderEntity> clearCart(OrderEntity orderEntity, Long userId) {
+        return cartService.clearCart(userId).thenReturn(orderEntity);
     }
 
     private List<OrderItemEntity> getOrderItemsWithId(OrderEntity orderEntity) {

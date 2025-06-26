@@ -27,23 +27,30 @@ public class CartService {
         return cartItemRepository.findByItemEntityId(itemId);
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "cartItem", key = "{#itemId, #userId}")
+    public Mono<CartItemEntity> findByItemIdAndUserId(Long itemId, Long userId) {
+        return cartItemRepository.findByItemEntityIdAndUserId(itemId, userId);
+    }
+
     @Transactional
-    @CacheEvict(cacheNames = "cartItem", key = "#id")
-    public Mono<CartItemEntity> deleteByItemId(Long id) {
-        return cartItemRepository.findByItemEntityId(id)
+    @CacheEvict(cacheNames = "cartItem", key = "{#id, #userId}")
+    public Mono<CartItemEntity> deleteByItemId(Long id, Long userId) {
+        return cartItemRepository.findByItemEntityIdAndUserId(id, userId)
                 .flatMap(cartItem -> cartItemRepository.delete(cartItem).thenReturn(cartItem));
     }
 
     @Transactional(readOnly = true)
-    public Flux<CartItemEntity> getAll() {
-        return cartItemRepository.findAll();
+    public Flux<CartItemEntity> getAll(Long userId) {
+        return cartItemRepository.findAllByUserId(userId);
     }
 
     @Transactional()
-    @CachePut(cacheNames = "cartItem", key = "#item.id")
-    public Mono<CartItemEntity> addCartItem(ItemEntity item) {
-        return cartItemRepository.findByItemEntityId(item.getId())
-                .switchIfEmpty(Mono.just(CartItemEntity.builder().itemEntityId(item.getId()).quantity(0).build()))
+    @CachePut(cacheNames = "cartItem", key = "{#item.id, #userId}")
+    public Mono<CartItemEntity> addCartItem(ItemEntity item, Long userId) {
+        return cartItemRepository.findByItemEntityIdAndUserId(item.getId(), userId)
+                .switchIfEmpty(Mono.just(
+                        CartItemEntity.builder().itemEntityId(item.getId()).quantity(0).userId(userId).build()))
                 .map(cartItem -> {
                     cartItem.setQuantity(cartItem.getQuantity() + 1);
                     return cartItem;
@@ -52,9 +59,9 @@ public class CartService {
     }
 
     @Transactional()
-    @CacheEvict(cacheNames = "cartItem", key = "#item.id")
-    public Mono<CartItemEntity> removeCartItem(ItemEntity item) {
-        return cartItemRepository.findByItemEntityId(item.getId())
+    @CacheEvict(cacheNames = "cartItem", key = "{#item.id, #userId}")
+    public Mono<CartItemEntity> removeCartItem(ItemEntity item, Long userId) {
+        return cartItemRepository.findByItemEntityIdAndUserId(item.getId(), userId)
                 .flatMap(cartItem -> {
                     if (cartItem.getQuantity() < 2) {
                         return cartItemRepository.delete(cartItem).then(Mono.empty());
@@ -67,9 +74,9 @@ public class CartService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"cartItem"}, allEntries = true)
-    public Mono<Void> clearCart() {
-        return cartItemRepository.deleteAll();
+    @CacheEvict(cacheNames = {"cartItem"}, key = "#userId", allEntries = true)
+    public Mono<Void> clearCart(Long userId) {
+        return cartItemRepository.deleteAllByUserId(userId);
     }
 
 }

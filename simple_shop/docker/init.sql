@@ -1,3 +1,11 @@
+CREATE TABLE users
+(
+    id       BIGSERIAL PRIMARY KEY,
+    username varchar(255) NOT NULL UNIQUE,
+    password varchar(255) NOT NULL,
+    role     varchar(255) NOT NULL
+);
+
 CREATE TABLE items
 (
     id          BIGSERIAL PRIMARY KEY,
@@ -11,7 +19,8 @@ CREATE TABLE orders
 (
     id          BIGSERIAL PRIMARY KEY,
     created_at  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    total_price DECIMAL(10, 2) NOT NULL
+    total_price DECIMAL(10, 2) NOT NULL,
+    user_id     BIGINT         NOT NULL REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE order_items
@@ -28,15 +37,8 @@ CREATE TABLE cart_items
     id       BIGSERIAL PRIMARY KEY,
     item_id  BIGINT NOT NULL REFERENCES items (id),
     quantity INT    NOT NULL,
-    CONSTRAINT unique_cart_item UNIQUE (item_id)
-);
-
-CREATE TABLE users
-(
-    id       BIGSERIAL PRIMARY KEY,
-    username varchar(255) NOT NULL UNIQUE,
-    password varchar(255) NOT NULL,
-    role     varchar(255) NOT NULL
+    user_id  BIGINT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT unique_cart_item UNIQUE (item_id, user_id)
 );
 
 INSERT INTO items (title, description, img_path, price)
@@ -48,4 +50,5 @@ VALUES ('Big cat', 'Big cat (Gigantic)', 'bigCat.jpg', 1599.99),
        ('Big dog', 'Big doge (really huge dog)', 'bigDog.jpg', 5000.00);
 
 INSERT INTO users (id, username, password, role)
-VALUES (1, 'testuser', '$2a$12$ap7oaVJLkC/WNhXpiJN6LOfv.0vp982jBZz0tH3tNFJZvpx2qWko.', 'USER')
+VALUES (1, 'testuser', '$2a$12$ap7oaVJLkC/WNhXpiJN6LOfv.0vp982jBZz0tH3tNFJZvpx2qWko.', 'USER'),
+       (2, 'mainuser', '$2a$12$ap7oaVJLkC/WNhXpiJN6LOfv.0vp982jBZz0tH3tNFJZvpx2qWko.', 'USER')

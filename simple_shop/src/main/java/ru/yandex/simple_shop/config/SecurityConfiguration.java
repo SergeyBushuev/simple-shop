@@ -28,7 +28,6 @@ public class SecurityConfiguration {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
-                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers("/", "/login", "/*.jpg", "/main/items").permitAll()
                         .pathMatchers(HttpMethod.GET, "/items/{id}").permitAll()
@@ -36,6 +35,7 @@ public class SecurityConfiguration {
                 .formLogin(withDefaults())
                 .logout(withDefaults())
                 .authenticationManager(reactiveAuthenticationManager())
+                .csrf(csrf -> csrf.disable())
                 .build();
     }
 
