@@ -23,13 +23,13 @@ public class CartServiceTest extends PostgresContainerConfig {
 
     @BeforeEach
     public void setup() {
-        itemService.addItemInCart(1L, ActionType.plus).block();
-        itemService.addItemInCart(2L, ActionType.plus).block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+        itemService.addItemInCart(2L, ActionType.plus, "testuser").block();
     }
 
     @Test
     public void getCart_OkTest() {
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertNotNull(cart);
         assertEquals(2, cart.size());
     }
@@ -54,8 +54,8 @@ public class CartServiceTest extends PostgresContainerConfig {
         ItemEntity item = itemService.findById(1L).block();
         assertNotNull(item);
 
-        cartService.addCartItem(item).block();
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        cartService.addCartItem(item, 1L).block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertNotNull(cart);
         assertEquals(2, cart.size());
         assertEquals(2, cart.getLast().getQuantity());
@@ -64,8 +64,8 @@ public class CartServiceTest extends PostgresContainerConfig {
     @Test
     public void addNewItem_OkTest() {
         ItemEntity item = itemService.findById(3L).block();
-        cartService.addCartItem(item).block();
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        cartService.addCartItem(item, 1L).block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertEquals(3, cart.size());
         assertEquals(1, cart.getLast().getQuantity());
     }
@@ -73,33 +73,33 @@ public class CartServiceTest extends PostgresContainerConfig {
     @Test
     public void removeItem_OkTest() {
         ItemEntity item = itemService.findById(1L).block();
-        cartService.removeCartItem(item).block();
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        cartService.removeCartItem(item, 1L).block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertEquals(1, cart.size());
     }
 
     @Test
     public void removeHighQuantityItem_OkTest() {
-        itemService.addItemInCart(1L, ActionType.plus).block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
         ItemEntity item = itemService.findById(1L).block();
-        cartService.removeCartItem(item).block();
+        cartService.removeCartItem(item, 1L).block();
 
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertEquals(2, cart.size());
         assertEquals(1, cart.getFirst().getQuantity());
     }
 
     @Test
     public void deleteItem_OkTest() {
-        cartService.deleteByItemId(1L).block();
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        cartService.deleteByItemId(1L, 1L).block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertEquals(1, cart.size());
     }
 
     @Test
     public void clearCart_OkTest() {
-        cartService.clearCart().block();
-        List<CartItemEntity> cart = cartService.getAll().collectList().block();
+        cartService.clearCart(1L).block();
+        List<CartItemEntity> cart = cartService.getAll(1L).collectList().block();
         assertTrue(cart.isEmpty());
     }
 }

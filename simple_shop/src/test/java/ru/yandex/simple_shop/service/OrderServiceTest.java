@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.simple_shop.PostgresContainerConfig;
 import ru.yandex.simple_shop.model.ActionType;
 import ru.yandex.simple_shop.model.OrderEntity;
+import ru.yandex.simple_shop.model.User;
 
 import java.util.List;
 
@@ -20,17 +21,20 @@ public class OrderServiceTest extends PostgresContainerConfig {
     OrderService orderService;
     @Autowired
     ItemService itemService;
+    @Autowired
+    UserService userService;
 
     @BeforeEach
     @Transactional
     public void setup() {
-        itemService.addItemInCart(1L, ActionType.plus);
+        itemService.addItemInCart(1L, ActionType.plus, "testuser");
     }
 
     @Test
     @SneakyThrows
     public void createOrder_OkTest() {
-        OrderEntity order = orderService.createOrder().block();
+        User user = userService.findByUsername("testuser").block();
+        OrderEntity order = orderService.createOrder(user).block();
         OrderEntity foundOrder = orderService.findById(order.getId()).block();
         assertEquals(order.getId(), foundOrder.getId());
         assertEquals(order.getTotalPrice(), foundOrder.getTotalPrice());
@@ -39,8 +43,10 @@ public class OrderServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getOrders_OkTest() {
-        OrderEntity order = orderService.createOrder().block();
-        List<OrderEntity> foundOrders = orderService.getOrders().collectList().block();
+        User user = userService.findByUsername("testuser").block();
+
+        OrderEntity order = orderService.createOrder(user).block();
+        List<OrderEntity> foundOrders = orderService.getOrders(1L).collectList().block();
         assertEquals(order.getId(), foundOrders.getFirst().getId());
         assertEquals(order.getTotalPrice(), foundOrders.getFirst().getTotalPrice());
     }

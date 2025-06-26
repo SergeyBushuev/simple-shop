@@ -3,7 +3,9 @@ package ru.yandex.payment_service;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.yandex.payment_service.model.PaymentRequest;
@@ -19,6 +21,18 @@ class PaymentControllerTest {
     private WebTestClient webTestClient;
 
     @Test
+    void UnauthorizedGetBalance_ErrorTest() {
+        String userId = "test";
+
+        webTestClient.get()
+                .uri("/payments/balance/{userId}", userId)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    @WithMockUser(username = "testuser", authorities = "USER")
     void getBalance_OkTest() {
         String userId = "test";
 
@@ -34,6 +48,7 @@ class PaymentControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser", authorities = "USER")
     void processPayment_okTest() {
         String userId = "test";
 
@@ -64,6 +79,7 @@ class PaymentControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser", authorities = "USER")
     void processPayment_insufficientFundTest() {
         String userId = "test";
 
@@ -94,6 +110,7 @@ class PaymentControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testuser", authorities = "USER")
     void processPayment_unknownUserErrorTest() {
         String userId = "test";
 

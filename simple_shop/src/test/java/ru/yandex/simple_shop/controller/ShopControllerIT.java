@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.LinkedMultiValueMap;
@@ -42,6 +43,21 @@ public class ShopControllerIT extends PostgresContainerConfig {
 
     @Test
     @SneakyThrows
+    void showcaseWithoutLogin_OkTest() {
+        webTestClient.get()
+                .uri("/main/items")
+                .attribute("search", "")
+                .attribute("sort", "ALPHA")
+                .attribute("pageNumber", "1")
+                .attribute("pageSize", "10")
+                .exchange().expectStatus().isOk().expectBody(String.class);
+
+    }
+
+
+    @Test
+    @SneakyThrows
+    @WithMockUser(username = "testuser", authorities = "USER")
     void showcase_OkTest() {
         webTestClient.get()
                 .uri("/main/items")
@@ -65,6 +81,7 @@ public class ShopControllerIT extends PostgresContainerConfig {
 
     @Test
     @SneakyThrows
+    @WithMockUser(username = "testuser", authorities = "USER")
     void emptyCart_OkTest() {
         webTestClient.get()
                 .uri("/cart/items")
@@ -76,6 +93,7 @@ public class ShopControllerIT extends PostgresContainerConfig {
 
     @Test
     @SneakyThrows
+    @WithMockUser(username = "testuser", authorities = "USER")
     void addToCart_OkTest() {
         MultiValueMap<String, String> bodyPlus = new LinkedMultiValueMap<>();
         bodyPlus.add("action", "plus");
@@ -98,6 +116,16 @@ public class ShopControllerIT extends PostgresContainerConfig {
 
     @Test
     @SneakyThrows
+    void unauthorizedCartRedirectToLogin_OkTest() {
+        webTestClient.get()
+                .uri("/cart/items")
+                .exchange()
+                .expectStatus().is3xxRedirection();
+    }
+
+    @Test
+    @SneakyThrows
+    @WithMockUser(username = "testuser", authorities = "USER")
     void cartInteraction_OkTest() {
 
         MultiValueMap<String, String> bodyPlus = new LinkedMultiValueMap<>();

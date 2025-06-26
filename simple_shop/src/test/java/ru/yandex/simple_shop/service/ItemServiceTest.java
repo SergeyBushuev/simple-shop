@@ -47,7 +47,7 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getPage_OkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10, "testuser").block();
         assertFalse(page.getT1().isEmpty());
         assertEquals(6, page.getT1().size());
     }
@@ -55,8 +55,8 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getPage_CachedOkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10).block();
-        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase(null, SortType.NO, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase(null, SortType.NO, 1, 10, "testuser").block();
+        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase(null, SortType.NO, 1, 10, "testuser").block();
         verify(itemRepository, times(1)).findAll();
         assertFalse(page.getT1().isEmpty());
         assertFalse(page2.getT1().isEmpty());
@@ -67,7 +67,7 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getSearchedPage_OkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.NO, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.NO, 1, 10, "testuser").block();
         assertFalse(page.getT1().isEmpty());
         assertEquals(4, page.getT1().size());
     }
@@ -75,7 +75,7 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getSearchedPriceOrdered_OkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 1, 10, "testuser").block();
         assertFalse(page.getT1().isEmpty());
         assertEquals(4, page.getT1().size());
         List<ItemEntity> items = page.getT1();
@@ -87,7 +87,7 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getSearchedPriceOrderedPaging_OkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 2, 2).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 2, 2, "testuser").block();
         assertFalse(page.getT1().isEmpty());
         List<ItemEntity> items = page.getT1();
         assertEquals(2, items.size());
@@ -98,19 +98,19 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void getSearchedPriceOrderedPaging_CachedOkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 2, 2).block();
-        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase("cat", SortType.PRICE, 2, 2).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("cat", SortType.PRICE, 2, 2, "testuser").block();
+        Tuple2<List<ItemEntity>, Long> page2 = itemService.getShowcase("cat", SortType.PRICE, 2, 2, "testuser").block();
         Pageable pageable = PageRequest.of(1, 2, Sort.by(Sort.Direction.ASC, "price"));
         verify(itemRepository, times(1)).findByTitleContainingIgnoreCase("cat", pageable);
 
-        Tuple2<List<ItemEntity>, Long> page3 = itemService.getShowcase("dog", SortType.PRICE, 2, 2).block();
+        Tuple2<List<ItemEntity>, Long> page3 = itemService.getShowcase("dog", SortType.PRICE, 2, 2, "testuser").block();
         verify(itemRepository, times(1)).findByTitleContainingIgnoreCase("dog", pageable);
     }
 
     @Test
     @SneakyThrows
     public void getSearchedAlphaOrdered_OkTest() {
-        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("dog", SortType.ALPHA, 1, 10).block();
+        Tuple2<List<ItemEntity>, Long> page = itemService.getShowcase("dog", SortType.ALPHA, 1, 10, "testuser").block();
         assertFalse(page.getT1().isEmpty());
         assertEquals(2, page.getT1().size());
         List<ItemEntity> items = page.getT1();
@@ -121,16 +121,32 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void checkEmptyCart_OkTest() {
-        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart().block();
+        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart("testuser").block();
         assertTrue(itemsFromCart.isEmpty());
     }
 
     @Test
     @SneakyThrows
     public void addItemToCart_OkTest() {
-        itemService.addItemInCart(1L, ActionType.plus).block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
 
-        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart().block();
+        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart("testuser").block();
+        assertFalse(itemsFromCart.isEmpty());
+        ItemEntity item = itemsFromCart.getFirst();
+        assertEquals("Big cat", item.getTitle());
+        assertEquals(1L, item.getId());
+        assertEquals(1, item.getCount());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getItemFromOtherUser_OkTest() {
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+
+        List<ItemEntity> itemsFromCartMainUser = itemService.getItemsFromCart("mainuser").block();
+        assertTrue(itemsFromCartMainUser.isEmpty());
+
+        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart("testuser").block();
         assertFalse(itemsFromCart.isEmpty());
         ItemEntity item = itemsFromCart.getFirst();
         assertEquals("Big cat", item.getTitle());
@@ -141,33 +157,33 @@ public class ItemServiceTest extends PostgresContainerConfig {
     @Test
     @SneakyThrows
     public void removeItemFromCartByMinus_OkTest() {
-        itemService.addItemInCart(1L, ActionType.plus).block();
-        itemService.addItemInCart(1L, ActionType.plus).block();
-        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart().block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart("testuser").block();
         assertEquals(1, itemsFromCart.size());
         assertEquals(2, itemsFromCart.getFirst().getCount());
 
-        itemService.addItemInCart(1L, ActionType.minus).block();
-        List<ItemEntity> itemsFromCartMinus = itemService.getItemsFromCart().block();
+        itemService.addItemInCart(1L, ActionType.minus, "testuser").block();
+        List<ItemEntity> itemsFromCartMinus = itemService.getItemsFromCart("testuser").block();
         assertEquals(1, itemsFromCartMinus.size());
         assertEquals(1, itemsFromCartMinus.getFirst().getCount());
 
-        itemService.addItemInCart(1L, ActionType.minus).block();
-        List<ItemEntity> itemsFromCartMinusMinus = itemService.getItemsFromCart().block();
+        itemService.addItemInCart(1L, ActionType.minus, "testuser").block();
+        List<ItemEntity> itemsFromCartMinusMinus = itemService.getItemsFromCart("testuser").block();
         assertTrue(itemsFromCartMinusMinus.isEmpty());
     }
 
     @Test
     @SneakyThrows
     public void removeItemFromCartByDelete_OkTest() {
-        itemService.addItemInCart(1L, ActionType.plus).block();
-        itemService.addItemInCart(1L, ActionType.plus).block();
-        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart().block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+        itemService.addItemInCart(1L, ActionType.plus, "testuser").block();
+        List<ItemEntity> itemsFromCart = itemService.getItemsFromCart("testuser").block();
         assertEquals(1, itemsFromCart.size());
         assertEquals(2, itemsFromCart.getFirst().getCount());
 
-        itemService.addItemInCart(1L, ActionType.delete).block();
-        List<ItemEntity> itemsFromCartMinusMinus = itemService.getItemsFromCart().block();
+        itemService.addItemInCart(1L, ActionType.delete, "testuser").block();
+        List<ItemEntity> itemsFromCartMinusMinus = itemService.getItemsFromCart("testuser").block();
         assertTrue(itemsFromCartMinusMinus.isEmpty());
     }
 }
